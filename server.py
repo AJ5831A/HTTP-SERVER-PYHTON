@@ -1,4 +1,4 @@
-import socket , os , sys 
+import socket , os , sys , json , uuid
 from threading import Lock , Thread
 from datetime import datetime , timezone
 
@@ -6,6 +6,8 @@ from datetime import datetime , timezone
 PORT = 8080
 HOST = '127.0.0.1'
 MAX_THREADS = 10
+REQ_LIMIT_PER_CONN = 100
+KEEPALIVE_TIMEOUT = 30
 
 if len(sys.argv)>1:
     PORT = sys.argv[1]
@@ -172,6 +174,73 @@ def handelConnection(conn , addr):
                         hdr = buildHeaders(415 , "Unsupported Media Type" , contentLen=len(body.encode()))
                         conn.sendall((hdr+body).encode())
                         log(f"[{threadName}] -> 415 {ext}")
-        
+                elif method.upper() == 'POST':
+                    ctype = headers.get('content-type' , '')
+                    clen = int(headers.get('content-length' , 0) or 0)
+                    if 'applicatoin/json' not in ctype:
+                        body = errorPage(415 , "Unsupported Media Type" , "File type not supported.")
+                        hdr = buildHeaders(415 , "Unsupported Media Type" , contentLen=len(body.encode()))
+                        conn.sendall((hdr+body).encode())
+                        log(f"[{threadName}] POST wrong content-type -> 415")
+                        continue
+
+                    # if body_tail may contain part of body; read remainder if needed
+                    bodyBytes = bodyTail.encode() if bodyTail else b''
+                    toRead = clen-len(bodyBytes)
+                    while toRead>0:
+                        chunck = conn.recv(min(4096 , toRead))
+                        if not chunck:
+                            break
+                        bodyBytes+=chunck
+                        toRead -=len(chunck)
+                    try:
+                        payload = json.loads(bodyBytes.decode())
+                    except Exception:
+                        body = errorPage(400 , "Bad Request" , "Invalid JSON.")
+                        hdr = buildHeaders(400 , 'Bad Request' , contentLen=len(body.encode()))
+                        conn.sendall((hdr+body).encode())
+                        log(f"[{threadName}] POST invalid JSON -> 400")
+                        continue
+                    fname = f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.json"
+                    fpath = os.path.join(UPLOADS , fname)
+                    with open(fpath , 'w' , encoding='utf-8') as wf:
+                        json.dump(payload , wf , ensure_ascii=False , indent=2)
+                    respBody = json.dumps({"status":"success" , "message":"File created successfully" , "filepath":f"/uploads/{fname}"})
+                    headersExtra = [f"Connection: {'keep-alive' if keepAlive else 'close'}"]
+                    hdr = buildHeaders(201 , "Created" , headers=headersExtra , contentLen=len(respBody.encode()) , contentType='application/json')
+                    conn.sendall(hdr.encode() + respBody.encode())
+                    log(f"[{threadName}] POST saved {fpath}")
+                else:
+                    body = errorPage(405 , "Method not Allowed" , "Only GET and POST allowed.")
+                    hdr = buildHeaders(405 , "Method Not Allowed" , contentLen=len(body.encode()))
+                    conn.sendall((hdr+body).encode())
+                    log(f"[{threadName}] -> 405 {method}")
+                requestsServed+=1
+                if keepAlive:
+                    conn.settimeout(KEEPALIVE_TIMEOUT)
+                else:
+                    break
+        except socket.timeout:
+            log(f"{threadName} Connection timeout, closing")
+            break
+        except ConnectionResetError:
+            log(f"[{threadName}] Connection reset by peer")
+            break
+        except Exception as e:
+            body = errorPage(500 , "Internal Server Error" , str(e))
+            hdr = buildHeaders(500 , "Internal server error", contentLen=len(body.encode()))
+            try:
+                conn.sendall((hdr+body).encode())
+            except:
+                pass
+            log(f"[{threadName}] 500: {e}")
+            break
+        try:
+            conn.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
+        conn.close()
+        log(f"[{threadName}] Connection closed (served {requestsServed} requests)")
+
 
 
