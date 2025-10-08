@@ -87,4 +87,49 @@ def parseRequest(data):
     return method , path , version , headers , body
 
 def handelConnection(conn , addr):
-    
+    threadName = f"Thread-{addr[1]}"
+    log(f"[{threadName}] Connection from {addr[0]}:{addr[1]}")
+    conn.settimeout(30)
+    requestsServed = 0
+    keepAlive = True
+    while keepAlive and requestsServed < 100:
+        try:
+            data = b""
+            #read until header end
+            while b"\r\n\r\n" not in data:
+                chunck = conn.recv(4096)
+                if not chunck:
+                    raise ConnectionResetError
+                data += chunck
+                if len(data) > 8192:
+                    break
+                text = data.decode(errors = 'replace')
+                parsed = parseRequest(text)
+                if not parsed:
+                    body = errorPage(400 , "Bad Request" , "Malformed request.")
+                    hdr = buildHeaders(400 , "Bad Request" , contentLen=len(body.encode()))
+                    conn.sendall((hdr+body).encode())
+                    log(f"[{threadName}] Request: malformed -> 400")
+                    break
+                method , path , version , headers , bodyTail = parsed
+                log(f"[{threadName}] Request: {method} {path} {version}")
+
+                #Host header validatiom
+                hostHDR = headers.get('host')
+                exprectedHost = f"{HOST}:{PORT}"
+                if not hostHDR:
+                    body = errorPage(400 , "Bad Request" , "Missing host header.")
+                    hdr = buildHeaders(400 , "Bad Request" , contentLen=len(body.encode()))
+                    conn.sendall((hdr+body).encode())
+                    log(f"[{threadName}] Host Missing -> 400")
+                    break
+                if hostHDR != exprectedHost and hostHDR != f"localhost:{PORT}" and hostHDR != f"127.0.0.1:{PORT}":
+                    body = errorPage(403, "Forbidden", "Host header mismatch.")
+                    hdr = buildHeaders(403, "Forbidden", content_len=len(body.encode()))
+                    conn.sendall((hdr + body).encode())
+                    log(f"[{threadName}] Host mismatch ({hostHDR}) -> 403")
+                    break
+
+                #Connection Header
+                connHDR = headers.get('connection' , '').lower()
+                
