@@ -132,4 +132,46 @@ def handelConnection(conn , addr):
 
                 #Connection Header
                 connHDR = headers.get('connection' , '').lower()
-                
+                if version == 'HTTP/1.0':
+                    keepAlive = (connHDR == 'keep-alive')
+                else:
+                    keepAlive = (connHDR!='close')
+
+                #handle GET
+                if method.upper() == 'GET':
+                    target = safePathJoin(BASE , path)
+                    if not target:
+                        body = errorPage(403 , "Forbidden" , "Access denied.")
+                        hdr = buildHeaders(403 , "Forbidden" , contentLen=len(body.encode()))
+                        conn.sendall((hdr+body).encode())
+                        log(f"[{threadName}] -> 404 {target}")
+                        continue
+                    if not os.path.exists(target) or not os.path.isfile(target):
+                        body = errorPage(404 , "Not Found" , "Resource not found.")
+                        hdr = buildHeaders(404 , "Not Found" , contentLen=len(body.encode()))
+                        conn.sendall((hdr+body).encode())
+                        log(f"[{threadName}] -> 404 {target}")
+                        continue
+                    ext = os.path.splitext(target)[1].lower()
+                    if ext in('.html' , '.htm'):
+                        with open(target , 'r' , encodings = 'utf-8' , errors='replace') as f:
+                            content = f.read().encode()
+                        headersExtra = [f"Connection: {'keep-alive' if keepAlive else 'close'}" , f"Keep-Alive: timeout={30} , max={100}"]
+                        hdr = buildHeaders(200 , "OK" , headers=headersExtra , contentLen=len(content) , contentType='text/html; charset=utf-8')
+                        conn.sendall(hdr.encode() + content)
+                        log(f"[{threadName}] Response: 200 OK {os.path.basename(target)} ({len(content)} bytes)")
+                    elif ext in ('.png' , '.jpg' , '.jpeg' , '.txt'):
+                        with open(target , 'rb') as f:
+                            content = f.read()
+                        headersExtra = [f"Content-Disposition: attachment; filename\"{os.path.basename(target)}\"" , f"Connection: {'keep-alive' if keepAlive else 'close'}"]
+                        hdr = buildHeaders(200 , "OK" , headers=headersExtra , contentLen=len(content) , contentType='application/octet-stream')
+                        conn.sendall(hdr.encode() + content)
+                        log(f"[{threadName}] Response: 200 OK (binary) {os.path.basename(target)} ({len(content)} bytes)")
+                    else:
+                        body = errorPage(415 , "Unsupported Media Type" , "File type not supported.")
+                        hdr = buildHeaders(415 , "Unsupported Media Type" , contentLen=len(body.encode()))
+                        conn.sendall((hdr+body).encode())
+                        log(f"[{threadName}] -> 415 {ext}")
+        
+
+
