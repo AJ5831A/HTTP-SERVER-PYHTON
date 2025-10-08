@@ -66,4 +66,25 @@ def safePathJoin(base , reqPath):
         return None
     return target
 
+def parseRequest(data):
+    lines = data.split('\n')
+    if not lines:
+        return None
+    firstLine = lines[0].split(' ')
+    method , path , version = firstLine
+    if len(firstLine)<3:
+        return None
+    
+    headers = {}
+    i = 1
+    while i<len(lines) and lines[i]:
+        line = lines[i]
+        if ':' in line:
+            k , v = line.split(':' , 1)
+            headers[k.strip().lower()] = v.strip()
+        i+=1
+    body = '\r\n'.join(lines[i+1:]) if i+1 < len(lines) else ''
+    return method , path , version , headers , body
 
+def handelConnection(conn , addr):
+    
