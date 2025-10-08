@@ -1,12 +1,14 @@
 import socket , os , sys , json , uuid
 from threading import Lock , Thread
 from datetime import datetime , timezone
+from queue import Queue
 
 # CLI argument -> python server.py [port] [host] [max_threads]
 PORT = 8080
 HOST = '127.0.0.1'
 MAX_THREADS = 10
 REQ_LIMIT_PER_CONN = 100
+QUEUE_SIZE = 100
 KEEPALIVE_TIMEOUT = 30
 
 if len(sys.argv)>1:
@@ -156,7 +158,7 @@ def handelConnection(conn , addr):
                         continue
                     ext = os.path.splitext(target)[1].lower()
                     if ext in('.html' , '.htm'):
-                        with open(target , 'r' , encodings = 'utf-8' , errors='replace') as f:
+                        with open(target , 'r' , encoding = 'utf-8' , errors='replace') as f:
                             content = f.read().encode()
                         headersExtra = [f"Connection: {'keep-alive' if keepAlive else 'close'}" , f"Keep-Alive: timeout={30} , max={100}"]
                         hdr = buildHeaders(200 , "OK" , headers=headersExtra , contentLen=len(content) , contentType='text/html; charset=utf-8')
@@ -228,7 +230,6 @@ def handelConnection(conn , addr):
             break
         except Exception as e:
             body = errorPage(500 , "Internal Server Error" , str(e))
-            hdr = buildHeaders(500 , "Internal server error", contentLen=len(body.encode()))
             try:
                 conn.sendall((hdr+body).encode())
             except:
@@ -242,5 +243,45 @@ def handelConnection(conn , addr):
         conn.close()
         log(f"[{threadName}] Connection closed (served {requestsServed} requests)")
 
+def worker(q):
+    while True:
+        conn , addr = q.get()
+        try:
+            handelConnection(conn , addr)
+        finally:
+            q.task_done()
 
+def main():
+    q = Queue(maxsize=QUEUE_SIZE)
+    for i in range(MAX_THREADS):
+        Thread(target=worker , args=(q,) , daemon=True).start()
+    sock = socket.socket(socket.AF_INET , socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET , socket.SO_REUSEADDR , 1)
+    sock.bind((HOST , PORT))
+    sock.listen(50)
+    log(f"HTTP Server started on http://{HOST}:{PORT}")
+    log(f"Thread pool size: {MAX_THREADS}")
+    log(f"Serving files from '{BASE}' directory")
+    try:
+        while True:
+            conn , addr = sock.accept()
+            try:
+                q.put((conn , addr) , block=True , timeout=5)
+                log(f"Connection queued/assigned: {addr}")
+            except Exception:
+                # queue full -> inform client and close
+                body = errorPage(503 , "Service Unavailable" , "Server busy, try again later.")
+                hdr = buildHeaders(503 , "Service Unavailable" , headers=[f"Retry-After: 5"], contentLen=len(body.encode()))
+                try:
+                    conn.sendall((hdr+body).encode())
+                except:
+                    pass
+                conn.close()
+                log(f"Queue full -> rejected {addr}")
+    except KeyboardInterrupt:
+        log("Shutdown requested, closing server")
+    finally:
+        sock.close()
 
+if __name__ == "__main__":
+    main()
