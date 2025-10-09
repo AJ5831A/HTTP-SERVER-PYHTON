@@ -1,0 +1,3 @@
+This is sample text file 2.
+HTTP Server assignment requires serving text files as binary data.
+This helps verify the file download functionality.

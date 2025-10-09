@@ -1,0 +1,3 @@
+This is sample text file 1.
+It is used for testing GET requests on the HTTP server.
+You can add any content here for experimentation.

@@ -2,36 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #6200ea;
-            color: white;
-            padding: 20px 0;
-        }
-        h1 {
-            margin: 0;
-        }
-        p {
-            font-size: 1.2em;
-        }
-    </style>
+    <title>Home - Multi-threaded HTTP Server</title>
 </head>
 <body>
-    <header>
-        <h1>Welcome to My Project</h1>
-    </header>
-    <main>
-        <p>Thank you for visiting! Explore and enjoy your stay.</p>
-    </main>
+    <h1>Welcome to My HTTP Server Project</h1>
+    <p>This server demonstrates multi-threading, GET/POST handling, binary file transfer, and security features.</p>
+
+    <nav>
+        <a href="index.html">Home</a> |
+        <a href="about.html">About</a> |
+        <a href="contact.html">Contact</a>
+    </nav>
+
+    <h2>Test POST JSON Upload</h2>
+    <form id="uploadForm">
+        <textarea id="jsonInput" rows="5" cols="50">{ "name": "John", "age": 30 }</textarea><br>
+        <button type="button" onclick="sendJSON()">Upload JSON</button>
+    </form>
+
+    <pre id="response"></pre>
+
+    <script>
+        async function sendJSON() {
+            const data = document.getElementById("jsonInput").value;
+            try {
+                const res = await fetch("/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: data
+                });
+                const text = await res.text();
+                document.getElementById("response").innerText = text;
+            } catch (err) {
+                document.getElementById("response").innerText = err;
+            }
+        }
+    </script>
 </body>
 </html>
