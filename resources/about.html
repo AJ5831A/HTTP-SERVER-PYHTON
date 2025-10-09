@@ -1,23 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>About - HTTP Server</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About | CN Project</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafc;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #0056b3;
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    nav {
+      background-color: #004080;
+      display: flex;
+      justify-content: center;
+      padding: 0.5rem 0;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: 500;
+      transition: color 0.2s ease-in-out;
+    }
+    nav a:hover {
+      color: #ffcc00;
+    }
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding: 1rem 0;
+      background-color: #eee;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
+  <header>
     <h1>About This Project</h1>
-    <p>This is a multi-threaded HTTP server implemented using low-level socket programming in Python.</p>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <main>
+    <h2>Project Purpose</h2>
+    <p>This project was built as part of the Computer Networks course to demonstrate how HTTP servers work internally — handling connections, parsing requests, and delivering responses.</p>
+
+    <h3>Key Features:</h3>
     <ul>
-        <li>Handles concurrent clients with a thread pool.</li>
-        <li>Supports GET for HTML, PNG, JPEG, and TXT files.</li>
-        <li>Supports POST for JSON data upload.</li>
-        <li>Implements security: path traversal prevention & host validation.</li>
-        <li>Supports HTTP/1.0 and HTTP/1.1 keep-alive connections.</li>
+      <li>Implements HTTP GET and POST methods</li>
+      <li>Serves static HTML and text files</li>
+      <li>Supports multithreading for handling multiple client connections</li>
     </ul>
-    <nav>
-        <a href="index.html">Home</a> |
-        <a href="about.html">About</a> |
-        <a href="contact.html">Contact</a>
-    </nav>
+  </main>
+
+  <footer>
+    <p>Created by Aryan Jakhar | Scaler School of Technology</p>
+  </footer>
 </body>
 </html>

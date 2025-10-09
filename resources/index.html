@@ -1,42 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Home - Multi-threaded HTTP Server</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home | CN Project Server</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafc;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #0056b3;
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    nav {
+      background-color: #004080;
+      display: flex;
+      justify-content: center;
+      padding: 0.5rem 0;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: 500;
+      transition: color 0.2s ease-in-out;
+    }
+    nav a:hover {
+      color: #ffcc00;
+    }
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #004080;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-size: 1rem;
+      font-family: monospace;
+      resize: vertical;
+    }
+    button {
+      margin-top: 10px;
+      background-color: #0056b3;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+    button:hover {
+      background-color: #003d80;
+    }
+    pre {
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding: 1rem 0;
+      background-color: #eee;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
+  <header>
     <h1>Welcome to My HTTP Server Project</h1>
-    <p>This server demonstrates multi-threading, GET/POST handling, binary file transfer, and security features.</p>
+  </header>
 
-    <nav>
-        <a href="index.html">Home</a> |
-        <a href="about.html">About</a> |
-        <a href="contact.html">Contact</a>
-    </nav>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
 
-    <h2>Test POST JSON Upload</h2>
-    <form id="uploadForm">
-        <textarea id="jsonInput" rows="5" cols="50">{ "name": "John", "age": 30 }</textarea><br>
-        <button type="button" onclick="sendJSON()">Upload JSON</button>
-    </form>
+  <main>
+    <h2>Project Overview</h2>
+    <p>This project implements a basic HTTP server in Python that supports GET and POST methods, serves static pages, and handles simple form submissions.</p>
 
-    <pre id="response"></pre>
+    <h2>Test POST JSON Request</h2>
+    <p>Use this form to send a JSON POST request to the server (endpoint: <code>/post</code>).</p>
 
-    <script>
-        async function sendJSON() {
-            const data = document.getElementById("jsonInput").value;
-            try {
-                const res = await fetch("/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: data
-                });
-                const text = await res.text();
-                document.getElementById("response").innerText = text;
-            } catch (err) {
-                document.getElementById("response").innerText = err;
-            }
-        }
-    </script>
+    <textarea id="jsonData">
+{
+  "name": "Aryan",
+  "message": "Hello from the client!"
+}
+    </textarea>
+    <button onclick="sendJSON()">Send POST Request</button>
+
+    <h3>Server Response:</h3>
+    <pre id="responseArea"></pre>
+  </main>
+
+  <footer>
+    <p>Created as part of Computer Networks Assignment | Aryan Jakhar</p>
+  </footer>
+
+  <script>
+    async function sendJSON() {
+      const data = document.getElementById('jsonData').value;
+      try {
+        const res = await fetch('/post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: data
+        });
+        const text = await res.text();
+        document.getElementById('responseArea').innerText = text;
+      } catch (err) {
+        document.getElementById('responseArea').innerText = 'Error: ' + err;
+      }
+    }
+  </script>
 </body>
 </html>
